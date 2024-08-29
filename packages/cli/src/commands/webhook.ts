@@ -3,10 +3,9 @@ import { Flags, type Config } from '@oclif/core';
 import { ApplicationError } from 'n8n-workflow';
 
 import config from '@/config';
-import { ActiveExecutions } from '@/ActiveExecutions';
-import { ScalingService } from '@/scaling/scaling.service';
-import { WebhookServer } from '@/webhooks/WebhookServer';
-import { BaseCommand } from './BaseCommand';
+import { ActiveExecutions } from '@/active-executions';
+import { WebhookServer } from '@/webhooks/webhook-server';
+import { BaseCommand } from './base-command';
 
 import { OrchestrationWebhookService } from '@/services/orchestration/webhook/orchestration.webhook.service';
 import { OrchestrationHandlerWebhookService } from '@/services/orchestration/webhook/orchestration.handler.webhook.service';
@@ -96,6 +95,7 @@ export class Webhook extends BaseCommand {
 			);
 		}
 
+		const { ScalingService } = await import('@/scaling/scaling.service');
 		await Container.get(ScalingService).setupQueue();
 		await this.server.start();
 		this.logger.debug(`Webhook listener ID: ${this.server.uniqueInstanceId}`);

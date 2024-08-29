@@ -4,17 +4,18 @@ import config from '@/config';
 import { ExecutionService } from '@/executions/execution.service';
 import { AbortedExecutionRetryError } from '@/errors/aborted-execution-retry.error';
 import { MissingExecutionStopError } from '@/errors/missing-execution-stop.error';
-import type { ActiveExecutions } from '@/ActiveExecutions';
-import type { IExecutionResponse } from '@/Interfaces';
-import type { ScalingService } from '@/scaling/scaling.service';
-import type { WaitTracker } from '@/WaitTracker';
+import type { ActiveExecutions } from '@/active-executions';
+import type { IExecutionResponse } from '@/interfaces';
+import { ScalingService } from '@/scaling/scaling.service';
+import type { WaitTracker } from '@/wait-tracker';
 import type { ExecutionRepository } from '@/databases/repositories/execution.repository';
 import type { ExecutionRequest } from '@/executions/execution.types';
 import type { ConcurrencyControlService } from '@/concurrency/concurrency-control.service';
-import type { Job } from '@/scaling/types';
+import type { Job } from '@/scaling/scaling.types';
+import { mockInstance } from '@test/mocking';
 
 describe('ExecutionService', () => {
-	const scalingService = mock<ScalingService>();
+	const scalingService = mockInstance(ScalingService);
 	const activeExecutions = mock<ActiveExecutions>();
 	const executionRepository = mock<ExecutionRepository>();
 	const waitTracker = mock<WaitTracker>();
@@ -23,7 +24,6 @@ describe('ExecutionService', () => {
 	const executionService = new ExecutionService(
 		mock(),
 		mock(),
-		scalingService,
 		activeExecutions,
 		executionRepository,
 		mock(),

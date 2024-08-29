@@ -2,45 +2,44 @@ import express from 'express';
 import { v4 as uuid } from 'uuid';
 import axios from 'axios';
 
-import * as Db from '@/Db';
-import * as ResponseHelper from '@/ResponseHelper';
-import * as WorkflowHelpers from '@/WorkflowHelpers';
-import type { IWorkflowResponse } from '@/Interfaces';
+import * as Db from '@/db';
+import * as ResponseHelper from '@/response-helper';
+import * as WorkflowHelpers from '@/workflow-helpers';
+import type { IWorkflowResponse } from '@/interfaces';
 import config from '@/config';
 import { Delete, Get, Patch, Post, ProjectScope, Put, RestController } from '@/decorators';
-import { SharedWorkflow } from '@db/entities/SharedWorkflow';
-import { WorkflowEntity } from '@db/entities/WorkflowEntity';
-import { SharedWorkflowRepository } from '@db/repositories/sharedWorkflow.repository';
-import { TagRepository } from '@db/repositories/tag.repository';
-import { WorkflowRepository } from '@db/repositories/workflow.repository';
-import { validateEntity } from '@/GenericHelpers';
-import { ExternalHooks } from '@/ExternalHooks';
+import { SharedWorkflow } from '@/databases/entities/shared-workflow';
+import { WorkflowEntity } from '@/databases/entities/workflow-entity';
+import { SharedWorkflowRepository } from '@/databases/repositories/shared-workflow.repository';
+import { TagRepository } from '@/databases/repositories/tag.repository';
+import { WorkflowRepository } from '@/databases/repositories/workflow.repository';
+import { validateEntity } from '@/generic-helpers';
+import { ExternalHooks } from '@/external-hooks';
 import { WorkflowService } from './workflow.service';
-import { License } from '@/License';
-import { InternalHooks } from '@/InternalHooks';
+import { License } from '@/license';
 import * as utils from '@/utils';
 import { listQueryMiddleware } from '@/middlewares';
 import { TagService } from '@/services/tag.service';
-import { WorkflowHistoryService } from './workflowHistory/workflowHistory.service.ee';
-import { Logger } from '@/Logger';
+import { WorkflowHistoryService } from './workflow-history/workflow-history.service.ee';
+import { Logger } from '@/logger';
 import { BadRequestError } from '@/errors/response-errors/bad-request.error';
 import { NotFoundError } from '@/errors/response-errors/not-found.error';
 import { InternalServerError } from '@/errors/response-errors/internal-server.error';
 import { ForbiddenError } from '@/errors/response-errors/forbidden.error';
 import { NamingService } from '@/services/naming.service';
-import { UserOnboardingService } from '@/services/userOnboarding.service';
+import { UserOnboardingService } from '@/services/user-onboarding.service';
 import { CredentialsService } from '../credentials/credentials.service';
 import { WorkflowRequest } from './workflow.request';
 import { EnterpriseWorkflowService } from './workflow.service.ee';
-import { WorkflowExecutionService } from './workflowExecution.service';
-import { UserManagementMailer } from '@/UserManagement/email';
+import { WorkflowExecutionService } from './workflow-execution.service';
+import { UserManagementMailer } from '@/user-management/email';
 import { ProjectRepository } from '@/databases/repositories/project.repository';
 import { ProjectService } from '@/services/project.service';
 import { ApplicationError } from 'n8n-workflow';
 // eslint-disable-next-line n8n-local-rules/misplaced-n8n-typeorm-import
 import { In, type FindOptionsRelations } from '@n8n/typeorm';
-import type { Project } from '@/databases/entities/Project';
-import { ProjectRelationRepository } from '@/databases/repositories/projectRelation.repository';
+import type { Project } from '@/databases/entities/project';
+import { ProjectRelationRepository } from '@/databases/repositories/project-relation.repository';
 import { z } from 'zod';
 import { EventService } from '@/events/event.service';
 import { GlobalConfig } from '@n8n/config';
@@ -49,7 +48,6 @@ import { GlobalConfig } from '@n8n/config';
 export class WorkflowsController {
 	constructor(
 		private readonly logger: Logger,
-		private readonly internalHooks: InternalHooks,
 		private readonly externalHooks: ExternalHooks,
 		private readonly tagRepository: TagRepository,
 		private readonly enterpriseWorkflowService: EnterpriseWorkflowService,
@@ -311,7 +309,7 @@ export class WorkflowsController {
 		);
 
 		if (!workflow) {
-			this.logger.verbose('User attempted to access a workflow without permissions', {
+			this.logger.warn('User attempted to access a workflow without permissions', {
 				workflowId,
 				userId: req.user.id,
 			});
@@ -364,7 +362,7 @@ export class WorkflowsController {
 
 		const workflow = await this.workflowService.delete(req.user, workflowId);
 		if (!workflow) {
-			this.logger.verbose('User attempted to delete a workflow without permissions', {
+			this.logger.warn('User attempted to delete a workflow without permissions', {
 				workflowId,
 				userId: req.user.id,
 			});
@@ -459,7 +457,11 @@ export class WorkflowsController {
 			newShareeIds = toShare;
 		});
 
-		this.internalHooks.onWorkflowSharingUpdate(workflowId, req.user.id, shareWithIds);
+		this.eventService.emit('workflow-sharing-updated', {
+			workflowId,
+			userIdSharer: req.user.id,
+			userIdList: shareWithIds,
+		});
 
 		const projectsRelations = await this.projectRelationRepository.findBy({
 			projectId: In(newShareeIds),

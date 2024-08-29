@@ -1,8 +1,13 @@
-import type { AuthenticationMethod, IRun, IWorkflowBase } from 'n8n-workflow';
-import type { IWorkflowDb, IWorkflowExecutionDataProcess } from '@/Interfaces';
-import type { ProjectRole } from '@/databases/entities/ProjectRelation';
-import type { GlobalRole } from '@/databases/entities/User';
-import type { AuthProviderType } from '@/databases/entities/AuthIdentity';
+import type {
+	AuthenticationMethod,
+	IPersonalizationSurveyAnswersV4,
+	IRun,
+	IWorkflowBase,
+} from 'n8n-workflow';
+import type { IWorkflowDb, IWorkflowExecutionDataProcess } from '@/interfaces';
+import type { ProjectRole } from '@/databases/entities/project-relation';
+import type { GlobalRole } from '@/databases/entities/user';
+import type { AuthProviderType } from '@/databases/entities/auth-identity';
 
 export type UserLike = {
 	id: string;
@@ -78,6 +83,12 @@ export type RelayEventMap = {
 		runData?: IRun;
 	};
 
+	'workflow-sharing-updated': {
+		workflowId: string;
+		userIdSharer: string;
+		userIdList: string[];
+	};
+
 	// #endregion
 
 	// #region Node
@@ -100,7 +111,7 @@ export type RelayEventMap = {
 
 	'user-submitted-personalization-survey': {
 		userId: string;
-		answers: Record<string, string>;
+		answers: IPersonalizationSurveyAnswersV4;
 	};
 
 	'user-deleted': {
@@ -201,6 +212,17 @@ export type RelayEventMap = {
 		user: UserLike;
 	};
 
+	'user-transactional-email-sent': {
+		userId: string;
+		messageType:
+			| 'Reset password'
+			| 'New user invite'
+			| 'Resend invite'
+			| 'Workflow shared'
+			| 'Credentials shared';
+		publicApi: boolean;
+	};
+
 	// #endregion
 
 	// #region Public API
@@ -234,6 +256,7 @@ export type RelayEventMap = {
 			| 'Resend invite'
 			| 'Workflow shared'
 			| 'Credentials shared';
+		publicApi: boolean;
 	};
 
 	// #endregion
